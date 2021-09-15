@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import personsService from './services/persons'
 
 const Filter = ({ query, onChange }) => {
   return (
@@ -27,10 +27,12 @@ const PersonForm = (props) => {
   )
 }
 
-const Persons = ({ personsToShow }) => {
+const Person = ({ name, number, deletePerson }) => {
   return (
-    personsToShow.map(person =>
-      <p key={person.id}>{person.name} {person.number}</p>)
+    <p>
+      {name} {number}
+      <button onClick={deletePerson}>delete</button>
+    </p>
   )
 }
 
@@ -41,10 +43,9 @@ const App = () => {
   const [nameQuery, setNameQuery] = useState('')
 
   useEffect(() => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => {
-        setPersons(response.data)
+    personsService.getAll()
+      .then(personsList => {
+        setPersons(personsList)
       })
   }, [])
 
@@ -63,14 +64,31 @@ const App = () => {
     }
 
     const newPerson = {
-      id: persons.length + 1,
       name: newName,
       number: newPhoneNo
     }
 
-    setPersons(persons.concat(newPerson))
-    setNewName('')
-    setNewPhoneNo('')
+    personsService.create(newPerson)
+      .then(createdPerson => {
+        setPersons(persons.concat(createdPerson))
+        setNewName('')
+        setNewPhoneNo('')
+      })
+  }
+
+  const deletePerson = (id) => {
+    const person = persons.find(person => person.id === id)
+
+    if (window.confirm(`Do you really want to delete ${person.name}?`)) {
+      personsService.remove(id)
+        .then(noContent => {
+          setPersons(persons.filter(person => person.id !== id))
+        })
+        .catch(error => {
+          alert(`${person.name} was already deleted from server`)
+          setPersons(persons.filter(person => person.id !== id))
+        })
+    }
   }
 
   const handleNameChange = (event) => {
@@ -98,7 +116,16 @@ const App = () => {
         phoneOnChange={handlePhoneChange}
       />
       <h2>Numbers</h2>
-      <Persons personsToShow={personsToShow} />
+      <div>
+        {personsToShow.map(person =>
+          <Person
+            key={person.id}
+            name={person.name}
+            number={person.number}
+            deletePerson={() => deletePerson(person.id)}
+          />
+        )}
+      </div>
     </div >
   )
 }
