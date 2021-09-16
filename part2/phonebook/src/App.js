@@ -57,9 +57,20 @@ const App = () => {
 
   const addPerson = (event) => {
     event.preventDefault()
+    const existingPerson = persons.find(person => person.name.toUpperCase() === newName.toUpperCase())
 
-    if (persons.find(person => person.name.toUpperCase() === newName.toUpperCase())) {
-      alert(`${newName} is already added to phonebook`)
+    if (existingPerson) {
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+        const updatedPerson = { ...existingPerson, number: newPhoneNo }
+        const id = existingPerson.id
+
+        personsService.update(id, updatedPerson)
+          .then(response => {
+            setPersons(persons.filter(person => person.id !== id).concat(updatedPerson))
+            setNewName('')
+            setNewPhoneNo('')
+          })
+      }
       return
     }
 
