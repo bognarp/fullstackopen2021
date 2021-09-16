@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import personsService from './services/persons'
 
+const Notification = ({ message }) => {
+  if (message) {
+    const { type, content } = message
+
+    return (
+      <div className={type}>
+        {content}
+      </div>
+    )
+  }
+
+  return null
+}
+
 const Filter = ({ query, onChange }) => {
   return (
     <div>
@@ -41,6 +55,7 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newPhoneNo, setNewPhoneNo] = useState('')
   const [nameQuery, setNameQuery] = useState('')
+  const [message, setMessage] = useState(null)
 
   useEffect(() => {
     personsService.getAll()
@@ -57,15 +72,25 @@ const App = () => {
 
   const addPerson = (event) => {
     event.preventDefault()
-    const existingPerson = persons.find(person => person.name.toUpperCase() === newName.toUpperCase())
+    const existingPerson = persons.find(person => {
+      return person.name.toUpperCase() === newName.toUpperCase()
+    })
 
     if (existingPerson) {
       if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
-        const updatedPerson = { ...existingPerson, number: newPhoneNo }
+        const updatedPerson = {
+          ...existingPerson,
+          number: newPhoneNo
+        }
         const id = existingPerson.id
 
         personsService.update(id, updatedPerson)
           .then(response => {
+            setMessage({
+              type: 'success',
+              content: `Updated ${updatedPerson.name}`
+            })
+            setTimeout(() => setMessage(null), 4000)
             setPersons(persons.filter(person => person.id !== id).concat(updatedPerson))
             setNewName('')
             setNewPhoneNo('')
@@ -81,9 +106,15 @@ const App = () => {
 
     personsService.create(newPerson)
       .then(createdPerson => {
+        setMessage({
+          type: 'success',
+          content: `Added ${createdPerson.name}`
+        })
+        setTimeout(() => setMessage(null), 4000)
         setPersons(persons.concat(createdPerson))
         setNewName('')
         setNewPhoneNo('')
+
       })
   }
 
@@ -96,7 +127,11 @@ const App = () => {
           setPersons(persons.filter(person => person.id !== id))
         })
         .catch(error => {
-          alert(`${person.name} was already deleted from server`)
+          setMessage({
+            type: 'error',
+            content: `${person.name} was already deleted from server`
+          })
+          setTimeout(() => setMessage(null), 4000)
           setPersons(persons.filter(person => person.id !== id))
         })
     }
@@ -117,6 +152,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={message} />
       <Filter query={nameQuery} onChange={handleQueryChange} />
       <h2>Add a new</h2>
       <PersonForm
